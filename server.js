@@ -1,17 +1,20 @@
-const express = require('express');
-const { exec } = require('child_process');
+const express = require("express");
+const fs = require("fs");
+const path = require("path");
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.get('/', (req, res) => {
-    exec('lua script.lua', (error, stdout, stderr) => {
-        if (error) {
-            return res.status(500).json({ error: error.message });
+app.get("/", (req, res) => {
+    const scriptPath = path.join(__dirname, "script.lua");
+
+    fs.readFile(scriptPath, "utf8", (err, data) => {
+        if (err) {
+            return res.status(500).send("Failed to load script.");
         }
-        if (stderr) {
-            return res.status(500).json({ error: stderr });
-        }
-        res.json({ output: stdout });
+
+        res.setHeader("Content-Type", "text/plain");
+        res.send(data);
     });
 });
 
