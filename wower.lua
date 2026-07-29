@@ -765,9 +765,9 @@
                   log("Max attempts reached for", name)
                   break
                   end
-                  task.wait(0.05)
+                  task.wait(0.01)
             end
-            task.wait(0.05)
+            task.wait(0.01)
       end
       log("Collection cycle done.")
       end
@@ -848,10 +848,10 @@
                   break
                   end
 
-                  task.wait(0.05)
+                  task.wait(0.01)
             end
 
-            task.wait(0.05)
+            task.wait(0.01)
       end
 
       log("Protected runes cycle finished.")
