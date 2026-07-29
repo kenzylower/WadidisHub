@@ -535,16 +535,21 @@ end
 
 local function shouldDelete(crystal)
     local tier = crystal:GetAttribute("Tier") or 0
-    -- if tier <= 4 then return true end
-    -- if tier == 5 or tier == 6 then return not hasMutation(crystal) end
-    if tier <= 5 then return true end
-    if tier == 6 then return not hasMutation(crystal) end
+    local sizeClass = crystal:GetAttribute("SizeClass") or ""
+    local isSmallMedLarge = (sizeClass == "S" or sizeClass == "M" or sizeClass == "L")
+
+    if tier <= 5 then return true end          -- always delete T1-T5
+    if isSmallMedLarge then return true end    -- delete small/med/large regardless of tier
+    if not hasMutation(crystal) then return true end  -- delete unmutated
     return false
 end
 
 local function qualifiesForCollect(crystal)
     local tier = crystal:GetAttribute("Tier") or 0
-    return (tier == 5 or tier == 6) and hasMutation(crystal)
+    local sizeClass = crystal:GetAttribute("SizeClass") or ""
+    local isSmallMedLarge = (sizeClass == "S" or sizeClass == "M" or sizeClass == "L")
+
+    return tier >= 6 and hasMutation(crystal) and not isSmallMedLarge
 end
 
 local function deleteLowTierCrystals()
