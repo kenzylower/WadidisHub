@@ -22,7 +22,7 @@ local CONFIG = {
     DIG_INTERVAL = 0.05,
     TIMEOUT_PER_BOULDER = 90,
     NOCLIP_ENABLED = true,
-    SCAN_TELEPORT_POS = Vector3.new(-6.950318, 200.289139, 280.262573),
+    SCAN_TELEPORT_POS = Vector3.new(-6.950318, 200.289139, 250.262573),
     REJOIN_COOLDOWN = 60,
     VERBOSE = true,
     -- UI selection defaults (all filter defaults live here)
