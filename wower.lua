@@ -12,7 +12,7 @@
 local CONFIG = {
     masterEnabledDefault = true,
     autoSortEnabledDefault = true,
-    sellAllEnabledDefault = false,
+    sellAllEnabledDefault = true,
     TOOL_NAME = "The Terminus",
     DIG_RANGE = 10000,
     TWEEN_SPEED = 1.5,
