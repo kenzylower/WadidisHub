@@ -534,7 +534,7 @@ local function rejoinGame()
         log("IY command bar found – sending rejoin...")
         iyBox:CaptureFocus()
         iyBox.Text = "rj"
-        task.wait(0.1)
+        task.wait(1)
         pcall(firesignal, iyBox.FocusLost, true, Enum.UserInputType.Keyboard)
         log("Rejoin command sent.")
     else
