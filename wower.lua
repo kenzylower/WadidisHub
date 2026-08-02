@@ -529,16 +529,39 @@ local function rejoinGame()
         end
         return nil
     end
-    local iyBox = findIYTextBox()
-    if iyBox then
-        log("IY command bar found – sending rejoin...")
-        iyBox:CaptureFocus()
-        iyBox.Text = "rj"
-        task.wait(1)
-        pcall(firesignal, iyBox.FocusLost, true, Enum.UserInputType.Keyboard)
-        log("Rejoin command sent.")
-    else
-        log("IY command bar not found – cannot auto-rejoin.")
+
+    -- Keep trying until the place actually reloads (script dies) or user stops
+    local attempt = 0
+    while not state.stopScript do
+        attempt += 1
+        local iyBox = findIYTextBox()
+        if iyBox then
+            log("IY command bar found – sending rejoin (attempt " .. attempt .. ")...")
+            pcall(function()
+                iyBox:CaptureFocus()
+                -- Always set / re-set the text even if "rj" is already there
+                iyBox.Text = "rj"
+                task.wait(0.15) -- delay between typing "rj" and submitting
+                -- Fire FocusLost (how IY usually submits)
+                pcall(firesignal, iyBox.FocusLost, true, Enum.UserInputType.Keyboard)
+                -- Also simulate Enter key for reliability
+                pcall(function()
+                    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Return, false, game)
+                    task.wait(0.05)
+                    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Return, false, game)
+                end)
+            end)
+            log("Rejoin command sent. Waiting 3s to see if we rejoin...")
+        else
+            log("IY command bar not found (attempt " .. attempt .. ") – cannot auto-rejoin yet.")
+        end
+
+        -- Wait 3 seconds. If the game rejoined, this script will be gone.
+        -- If still here, try again.
+        local waitStart = tick()
+        while tick() - waitStart < 3 and not state.stopScript do
+            task.wait(0.25)
+        end
     end
 end
 local function processBoulder(boulder)
