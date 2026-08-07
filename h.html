@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Eldorado Seller Dashboard</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0e0e10;
+    --surface: #18181c;
+    --surface2: #202026;
+    --border: rgba(255,255,255,0.08);
+    --border-strong: rgba(255,255,255,0.14);
+    --text: #f0f0f0;
+    --text2: #9090a0;
+    --text3: #55555f;
+    --accent: #7c6cf8;
+    --accent-bg: rgba(124,108,248,0.12);
+    --accent-border: rgba(124,108,248,0.3);
+    --success: #4caf82;
+    --success-bg: rgba(76,175,130,0.12);
+    --warning: #e8a44a;
+    --warning-bg: rgba(232,164,74,0.12);
+    --danger: #e05c5c;
+    --danger-bg: rgba(224,92,92,0.12);
+    --radius: 8px;
+    --radius-lg: 12px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+  }
+
+  /* Layout */
+  .shell { display: flex; min-height: 100vh; }
+
+  .sidebar {
+    width: 220px;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+  }
+
+  .logo {
+    padding: 20px 20px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .logo-mark {
+    width: 30px; height: 30px;
+    background: var(--accent);
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 14px; color: #fff;
+  }
+  .logo-text { font-weight: 600; font-size: 15px; }
+  .logo-sub { font-size: 11px; color: var(--text2); }
+
+  .nav { flex: 1; padding: 12px 10px; display: flex; flex-direction: column; gap: 2px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px; border-radius: var(--radius);
+    cursor: pointer; color: var(--text2);
+    font-size: 13px; font-weight: 500;
+    transition: background 0.15s, color 0.15s;
+    border: none; background: none; width: 100%; text-align: left;
+  }
+  .nav-item svg { flex-shrink: 0; opacity: 0.7; }
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+  .nav-item.active { background: var(--accent-bg); color: var(--accent); border: 1px solid var(--accent-border); }
+  .nav-item.active svg { opacity: 1; }
+  .nav-badge {
+    margin-left: auto;
+    background: var(--danger-bg);
+    color: var(--danger);
+    font-size: 10px; font-weight: 700;
+    padding: 2px 6px; border-radius: 10px;
+    display: none;
+  }
+
+  .sidebar-footer { padding: 14px 10px; border-top: 1px solid var(--border); }
+
+  .main { margin-left: 220px; flex: 1; padding: 28px 32px; max-width: 960px; }
+
+  /* Header */
+  .page-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 24px;
+  }
+  .page-title { font-size: 20px; font-weight: 600; }
+  .page-sub { font-size: 13px; color: var(--text2); margin-top: 2px; }
+
+  /* Auth banner */
+  .auth-banner {
+    background: var(--warning-bg);
+    border: 1px solid rgba(232,164,74,0.25);
+    border-radius: var(--radius-lg);
+    padding: 14px 18px;
+    margin-bottom: 24px;
+    display: flex; align-items: flex-start; gap: 12px;
+  }
+  .auth-banner svg { flex-shrink: 0; margin-top: 1px; }
+  .auth-banner p { font-size: 13px; color: var(--warning); line-height: 1.6; }
+  .auth-banner strong { font-weight: 600; }
+
+  .token-field {
+    display: flex; gap: 8px; margin-top: 10px;
+  }
+  .token-field input {
+    flex: 1; background: rgba(0,0,0,0.3); border: 1px solid var(--border-strong);
+    color: var(--text); font-family: monospace; font-size: 12px;
+    padding: 8px 12px; border-radius: var(--radius); outline: none;
+  }
+  .token-field input:focus { border-color: var(--accent); }
+
+  /* Buttons */
+  .btn {
+    padding: 8px 14px; border-radius: var(--radius);
+    border: 1px solid var(--border-strong);
+    background: var(--surface2); color: var(--text);
+    font-size: 13px; font-weight: 500; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+    transition: background 0.15s, border-color 0.15s;
+    white-space: nowrap;
+  }
+  .btn:hover { background: #2a2a32; border-color: var(--border-strong); }
+  .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #6a5ce0; border-color: #6a5ce0; }
+  .btn-danger { background: var(--danger-bg); border-color: rgba(224,92,92,0.3); color: var(--danger); }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+
+  /* Sections */
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* Metrics */
+  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 24px; }
+  .metric {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 16px 18px;
+  }
+  .metric-label { font-size: 12px; color: var(--text2); margin-bottom: 8px; }
+  .metric-value { font-size: 24px; font-weight: 600; }
+  .metric-sub { font-size: 11px; color: var(--text3); margin-top: 4px; }
+
+  /* Cards */
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); margin-bottom: 16px; overflow: hidden;
+  }
+  .card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 18px; border-bottom: 1px solid var(--border);
+  }
+  .card-title { font-size: 14px; font-weight: 600; }
+  .card-body { padding: 0; }
+
+  /* Table */
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    text-align: left; font-size: 11px; font-weight: 600; letter-spacing: 0.05em;
+    color: var(--text3); text-transform: uppercase;
+    padding: 10px 18px; border-bottom: 1px solid var(--border);
+  }
+  td { padding: 12px 18px; font-size: 13px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+
+  /* Badges */
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 8px; border-radius: 20px;
+    font-size: 11px; font-weight: 600;
+  }
+  .badge-success { background: var(--success-bg); color: var(--success); }
+  .badge-warning { background: var(--warning-bg); color: var(--warning); }
+  .badge-danger  { background: var(--danger-bg);  color: var(--danger);  }
+  .badge-muted   { background: rgba(255,255,255,0.06); color: var(--text2); }
+  .badge-accent  { background: var(--accent-bg); color: var(--accent); }
+
+  /* Toolbar */
+  .toolbar { display: flex; gap: 8px; margin-bottom: 16px; align-items: center; }
+  .toolbar select, .toolbar input {
+    background: var(--surface); border: 1px solid var(--border-strong);
+    color: var(--text); font-size: 13px; padding: 7px 12px;
+    border-radius: var(--radius); outline: none; min-width: 150px;
+  }
+  .toolbar select:focus, .toolbar input:focus { border-color: var(--accent); }
+
+  /* Empty state */
+  .empty {
+    text-align: center; padding: 48px 24px;
+    color: var(--text3); font-size: 13px;
+  }
+  .empty svg { margin-bottom: 12px; opacity: 0.4; }
+
+  /* Notification item */
+  .notif {
+    display: flex; gap: 14px; padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+  }
+  .notif:last-child { border-bottom: none; }
+  .notif-icon {
+    width: 36px; height: 36px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .notif-title { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
+  .notif-desc { font-size: 12px; color: var(--text2); }
+  .notif-time { font-size: 11px; color: var(--text3); margin-top: 4px; }
+
+  /* Status dot */
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .dot-green { background: var(--success); box-shadow: 0 0 6px var(--success); }
+  .dot-gray  { background: var(--text3); }
+
+  /* Connection status */
+  .conn-status {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; color: var(--text2);
+    padding: 8px 12px; border-radius: var(--radius);
+    background: var(--surface2); border: 1px solid var(--border);
+  }
+
+  /* Loading */
+  .loading { text-align: center; padding: 32px; color: var(--text2); font-size: 13px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid var(--border-strong); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: -4px; margin-right: 8px; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
+
+  /* Poll indicator */
+  .poll-pill {
+    font-size: 11px; color: var(--text3); display: flex; align-items: center; gap: 5px;
+  }
+
+  @media (max-width: 700px) {
+    .sidebar { display: none; }
+    .main { margin-left: 0; padding: 16px; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-mark">E</div>
+      <div>
+        <div class="logo-text">Eldorado</div>
+        <div class="logo-sub">Seller panel</div>
+      </div>
+    </div>
+    <nav class="nav">
+      <button class="nav-item active" onclick="switchTab('orders', this)">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+        Orders
+      </button>
+      <button class="nav-item" onclick="switchTab('listings', this)">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+        Listings
+      </button>
+      <button class="nav-item" onclick="switchTab('earnings', this)">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        Earnings
+      </button>
+      <button class="nav-item" onclick="switchTab('notifications', this)">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        Alerts
+        <span class="nav-badge" id="nav-badge">0</span>
+      </button>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="conn-status" id="conn-status">
+        <span class="dot dot-gray" id="conn-dot"></span>
+        <span id="conn-label">Not connected</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+
+    <!-- Auth banner -->
+    <div class="auth-banner" id="auth-banner">
+      <svg width="18" height="18" fill="none" stroke="#e8a44a" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <div style="flex:1">
+        <p><strong>Connect your account</strong> — paste your Eldorado ID token below. Get it by running the Amplify sign-in script from the API docs.</p>
+        <div class="token-field">
+          <input type="password" id="token-input" placeholder="Paste __Host-EldoradoIdToken here..." />
+          <button class="btn btn-primary" onclick="saveToken()">Connect</button>
+          <button class="btn btn-danger btn-sm" id="disconnect-btn" style="display:none" onclick="clearToken()">Disconnect</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ORDERS -->
+    <div id="tab-orders" class="section active">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Orders</div>
+          <div class="page-sub">Your sales orders from Eldorado</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-sm" onclick="loadOrders()">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            Refresh
+          </button>
+        </div>
+      </div>
+      <div class="toolbar">
+        <select id="order-status-filter" onchange="loadOrders()">
+          <option value="">All statuses</option>
+          <option value="pending">Pending</option>
+          <option value="active">Active</option>
+          <option value="completed">Completed</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+      </div>
+      <div id="orders-content">
+        <div class="card"><div class="empty">
+          <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+          <div>Connect your account to see orders</div>
+        </div></div>
+      </div>
+    </div>
+
+    <!-- LISTINGS -->
+    <div id="tab-listings" class="section">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Listings</div>
+          <div class="page-sub">Your active offers on Eldorado</div>
+        </div>
+        <button class="btn btn-sm" onclick="loadListings()">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          Refresh
+        </button>
+      </div>
+      <div class="toolbar">
+        <input type="text" id="listing-search" placeholder="Search listings..." onkeydown="if(event.key==='Enter')loadListings()" />
+        <button class="btn btn-sm" onclick="loadListings()">Search</button>
+      </div>
+      <div id="listings-content">
+        <div class="card"><div class="empty">
+          <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+          <div>Connect your account to see listings</div>
+        </div></div>
+      </div>
+    </div>
+
+    <!-- EARNINGS -->
+    <div id="tab-earnings" class="section">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Earnings</div>
+          <div class="page-sub">Your balance and payout history</div>
+        </div>
+        <button class="btn btn-sm" onclick="loadEarnings()">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          Refresh
+        </button>
+      </div>
+      <div class="metrics">
+        <div class="metric"><div class="metric-label">Available balance</div><div class="metric-value" id="m-balance">—</div></div>
+        <div class="metric"><div class="metric-label">This month</div><div class="metric-value" id="m-month">—</div></div>
+        <div class="metric"><div class="metric-label">Completed orders</div><div class="metric-value" id="m-orders">—</div></div>
+        <div class="metric"><div class="metric-label">Avg. order value</div><div class="metric-value" id="m-avg">—</div></div>
+      </div>
+      <div id="earnings-content">
+        <div class="card"><div class="empty">
+          <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          <div>Connect your account to see earnings</div>
+        </div></div>
+      </div>
+    </div>
+
+    <!-- NOTIFICATIONS -->
+    <div id="tab-notifications" class="section">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Alerts</div>
+          <div class="page-sub">Pending orders that need your attention</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span class="poll-pill" id="poll-pill"></span>
+          <button class="btn btn-sm" onclick="loadNotifications()">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            Refresh
+          </button>
+        </div>
+      </div>
+      <div id="notif-content">
+        <div class="card"><div class="empty">
+          <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <div>Connect your account to see alerts</div>
+        </div></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+const HOST = 'eldorado.gg';
+let idToken = null;
+let pollTimer = null;
+let pollCountdown = 60;
+
+// ── Auth ──────────────────────────────────────────────────────────────────────
+function saveToken() {
+  const t = document.getElementById('token-input').value.trim();
+  if (!t) { alert('Paste your token first.'); return; }
+  idToken = t;
+  localStorage.setItem('eldorado_token', t);
+  setConnected(true);
+  loadAll();
+  startPolling();
+}
+
+function clearToken() {
+  idToken = null;
+  localStorage.removeItem('eldorado_token');
+  setConnected(false);
+  stopPolling();
+}
+
+function setConnected(ok) {
+  document.getElementById('conn-dot').className = 'dot ' + (ok ? 'dot-green' : 'dot-gray');
+  document.getElementById('conn-label').textContent = ok ? 'Connected' : 'Not connected';
+  document.getElementById('disconnect-btn').style.display = ok ? 'inline-flex' : 'none';
+  if (ok) document.getElementById('token-input').value = '••••••••••••••••';
+}
+
+// Restore saved token
+window.addEventListener('DOMContentLoaded', () => {
+  const saved = localStorage.getItem('eldorado_token');
+  if (saved) { idToken = saved; setConnected(true); loadAll(); startPolling(); }
+});
+
+// ── Navigation ────────────────────────────────────────────────────────────────
+function switchTab(id, btn) {
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+}
+
+// ── API ───────────────────────────────────────────────────────────────────────
+async function apiFetch(path) {
+  const r = await fetch(`https://${HOST}${path}`, {
+    credentials: 'include',
+    headers: {
+      'Accept': 'application/json',
+      'Cookie': `__Host-EldoradoIdToken=${idToken}`
+    }
+  });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.json();
+}
+
+function loadAll() {
+  loadOrders();
+  loadListings();
+  loadEarnings();
+  loadNotifications();
+}
+
+// ── Orders ────────────────────────────────────────────────────────────────────
+async function loadOrders() {
+  if (!idToken) return;
+  const c = document.getElementById('orders-content');
+  const filter = document.getElementById('order-status-filter').value;
+  c.innerHTML = loading('Loading orders…');
+  try {
+    const data = await apiFetch('/api/orders/me' + (filter ? '?status=' + filter : ''));
+    const orders = Array.isArray(data) ? data : (data.orders || data.items || []);
+    if (!orders.length) { c.innerHTML = emptyCard('No orders found'); return; }
+    c.innerHTML = `<div class="card">
+      <table>
+        <thead><tr><th>Game / Item</th><th>Order ID</th><th>Date</th><th>Price</th><th>Status</th></tr></thead>
+        <tbody>${orders.slice(0, 50).map(o => {
+          const status = o.status || o.orderStatus || 'unknown';
+          const price = o.price || o.totalPrice || o.amount;
+          return `<tr>
+            <td style="font-weight:500">${o.gameName || o.itemName || o.title || 'Order'}</td>
+            <td style="color:var(--text2);font-family:monospace">#${o.id || o.orderId || '—'}</td>
+            <td style="color:var(--text2)">${o.createdAt ? new Date(o.createdAt).toLocaleDateString() : '—'}</td>
+            <td style="font-weight:600">${price ? '$' + parseFloat(price).toFixed(2) : '—'}</td>
+            <td><span class="badge ${statusBadge(status)}">${status}</span></td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>
+    </div>`;
+  } catch (e) { c.innerHTML = errorCard(e.message); }
+}
+
+// ── Listings ──────────────────────────────────────────────────────────────────
+async function loadListings() {
+  if (!idToken) return;
+  const c = document.getElementById('listings-content');
+  const q = document.getElementById('listing-search').value.trim();
+  c.innerHTML = loading('Loading listings…');
+  try {
+    const data = await apiFetch('/api/offers/me' + (q ? '?q=' + encodeURIComponent(q) : ''));
+    const items = Array.isArray(data) ? data : (data.offers || data.items || []);
+    if (!items.length) { c.innerHTML = emptyCard('No listings found'); return; }
+    c.innerHTML = `<div class="card">
+      <table>
+        <thead><tr><th>Title</th><th>Price</th><th>Stock</th><th>Delivery</th><th>Status</th><th></th></tr></thead>
+        <tbody>${items.slice(0, 50).map(o => {
+          const status = o.status || o.offerStatus || 'active';
+          return `<tr>
+            <td style="font-weight:500">${o.title || o.name || o.itemName || 'Listing'}</td>
+            <td>$${parseFloat(o.price || 0).toFixed(2)}</td>
+            <td>${o.stock != null ? o.stock : (o.quantity != null ? o.quantity : '—')}</td>
+            <td style="color:var(--text2)">${o.deliveryType || o.isInstantDelivery ? 'Instant' : 'Manual'}</td>
+            <td><span class="badge ${statusBadge(status)}">${status}</span></td>
+            <td><button class="btn btn-sm" onclick="copyText('${o.id || ''}')" title="Copy ID">ID</button></td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>
+    </div>`;
+  } catch (e) { c.innerHTML = errorCard(e.message); }
+}
+
+// ── Earnings ──────────────────────────────────────────────────────────────────
+async function loadEarnings() {
+  if (!idToken) return;
+  document.getElementById('earnings-content').innerHTML = loading('Loading earnings…');
+  try {
+    const bal = await apiFetch('/api/seller/balance');
+    const balance = bal.balance || bal.totalBalance || bal.availableBalance || 0;
+    document.getElementById('m-balance').textContent = '$' + parseFloat(balance).toFixed(2);
+
+    const od = await apiFetch('/api/orders/me?status=completed&limit=100');
+    const orders = Array.isArray(od) ? od : (od.orders || od.items || []);
+    const now = new Date();
+    const thisMonth = orders.filter(o => {
+      const d = new Date(o.createdAt || o.date);
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    });
+    const monthTotal = thisMonth.reduce((s, o) => s + parseFloat(o.price || o.amount || 0), 0);
+    const avg = orders.length ? orders.reduce((s, o) => s + parseFloat(o.price || o.amount || 0), 0) / orders.length : 0;
+    document.getElementById('m-month').textContent = '$' + monthTotal.toFixed(2);
+    document.getElementById('m-orders').textContent = orders.length;
+    document.getElementById('m-avg').textContent = '$' + avg.toFixed(2);
+
+    const payouts = bal.payouts || bal.transactions || [];
+    document.getElementById('earnings-content').innerHTML = `<div class="card">
+      <div class="card-header"><span class="card-title">Payout history</span></div>
+      <div class="card-body">
+        ${payouts.length ? `<table>
+          <thead><tr><th>Date</th><th>Amount</th><th>Status</th></tr></thead>
+          <tbody>${payouts.slice(0, 20).map(p => `
+            <tr>
+              <td>${p.date || p.createdAt || '—'}</td>
+              <td>$${parseFloat(p.amount || 0).toFixed(2)}</td>
+              <td><span class="badge badge-success">${p.status || 'completed'}</span></td>
+            </tr>`).join('')}
+          </tbody>
+        </table>` : '<div class="empty"><div>No payout history available yet</div></div>'}
+      </div>
+    </div>`;
+  } catch (e) { document.getElementById('earnings-content').innerHTML = errorCard(e.message); }
+}
+
+// ── Notifications ─────────────────────────────────────────────────────────────
+async function loadNotifications() {
+  if (!idToken) return;
+  const c = document.getElementById('notif-content');
+  try {
+    const od = await apiFetch('/api/orders/me?status=pending&limit=20');
+    const pending = Array.isArray(od) ? od : (od.orders || od.items || []);
+    const badge = document.getElementById('nav-badge');
+    if (pending.length) { badge.style.display = 'inline'; badge.textContent = pending.length; }
+    else { badge.style.display = 'none'; }
+
+    if (!pending.length) {
+      c.innerHTML = `<div class="card"><div class="empty">
+        <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        <div>All clear — no pending orders</div>
+      </div></div>`;
+      return;
+    }
+    c.innerHTML = `<div class="card">${pending.map(o => `
+      <div class="notif">
+        <div class="notif-icon" style="background:var(--warning-bg)">
+          <svg width="16" height="16" fill="none" stroke="var(--warning)" stroke-width="2" viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>
+        </div>
+        <div>
+          <div class="notif-title">New order: ${o.gameName || o.itemName || o.title || '#' + o.id}</div>
+          <div class="notif-desc">$${parseFloat(o.price || o.amount || 0).toFixed(2)} · Awaiting delivery · Order #${o.id || '—'}</div>
+          <div class="notif-time">${o.createdAt ? new Date(o.createdAt).toLocaleString() : ''}</div>
+        </div>
+      </div>`).join('')}</div>`;
+  } catch (e) { c.innerHTML = errorCard(e.message); }
+}
+
+// ── Polling ───────────────────────────────────────────────────────────────────
+function startPolling() {
+  stopPolling();
+  pollCountdown = 60;
+  updatePollPill();
+  pollTimer = setInterval(() => {
+    pollCountdown--;
+    updatePollPill();
+    if (pollCountdown <= 0) {
+      pollCountdown = 60;
+      if (idToken) loadNotifications();
+    }
+  }, 1000);
+}
+function stopPolling() { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } }
+function updatePollPill() {
+  document.getElementById('poll-pill').textContent = idToken ? `Auto-refresh in ${pollCountdown}s` : '';
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function statusBadge(s) {
+  if (!s) return 'badge-muted';
+  s = s.toLowerCase();
+  if (s === 'completed' || s === 'active') return 'badge-success';
+  if (s === 'pending') return 'badge-warning';
+  if (s === 'cancelled' || s === 'canceled') return 'badge-danger';
+  return 'badge-muted';
+}
+function loading(msg) { return `<div class="card"><div class="loading"><span class="spinner"></span>${msg}</div></div>`; }
+function emptyCard(msg) { return `<div class="card"><div class="empty"><div>${msg}</div></div></div>`; }
+function errorCard(msg) { return `<div class="card"><div class="empty" style="color:var(--danger)">Error: ${msg} — check your token or CORS settings</div></div>`; }
+function copyText(t) { if (t) navigator.clipboard.writeText(t).catch(() => {}); }
+</script>
+</body>
+</html>
