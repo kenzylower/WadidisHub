@@ -68,16 +68,16 @@ local CONFIG = {
     },
 
     runeFiltersDefault = {
-        ["Luck Rune"]         = false,
-        ["Haste Rune"]        = false,
-        ["Storm Rune"]        = false,
-        ["Weight Rune"]       = false,
-        ["Fortune Rune"]      = false,
-        ["Detonation Rune"]   = false,
+        ["Luck Rune"] = false,
+        ["Haste Rune"] = false,
+        ["Storm Rune"] = false,
+        ["Weight Rune"] = false,
+        ["Fortune Rune"] = false,
+        ["Detonation Rune"] = false,
         ["Preservation Rune"] = false,
-        ["Warmth Rune"]       = false,
-        ["Excavator Rune"]    = false,
-        ["Colossus Rune"]     = false,
+        ["Warmth Rune"] = false,
+        ["Excavator Rune"] = false,
+        ["Colossus Rune"] = false,
     },
 
     boulderFiltersDefault = {
