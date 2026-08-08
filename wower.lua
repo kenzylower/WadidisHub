@@ -37,7 +37,7 @@ local CONFIG = {
     DIG_INTERVAL           = 0.05,
     TIMEOUT_PER_BOULDER    = 90,
     NOCLIP_ENABLED         = true,
-    SCAN_TELEPORT_POS      = Vector3.new(-38.815575, 240.036621, 477.202576),
+    SCAN_TELEPORT_POS      = Vector3.new(-38.815575, 300, 300),
     REJOIN_COOLDOWN        = 60,
     VERBOSE                = true,
 
@@ -68,22 +68,22 @@ local CONFIG = {
     },
 
     runeFiltersDefault = {
-        ["Luck Rune"] = false,
-        ["Haste Rune"] = false,
-        ["Storm Rune"] = false,
-        ["Weight Rune"] = false,
-        ["Fortune Rune"] = false,
-        ["Detonation Rune"] = false,
-        ["Preservation Rune"] = false,
-        ["Warmth Rune"] = false,
-        ["Excavator Rune"] = false,
-        ["Colossus Rune"] = false,
+        ["Luck Rune"]         = false,
+        ["Haste Rune"]        = false,
+        ["Storm Rune"]        = false,
+        ["Weight Rune"]       = false,
+        ["Fortune Rune"]      = false,
+        ["Detonation Rune"]   = false,
+        ["Preservation Rune"] = true,
+        ["Warmth Rune"]       = false,
+        ["Excavator Rune"]    = false,
+        ["Colossus Rune"]     = true,
     },
 
     boulderFiltersDefault = {
         Mossite    = false,
         Voltite    = false,
-        Gildrite   = false,
+        Gildrite   = true,
         Rimeveil   = true,
         Nocturnite = true,
     },
@@ -96,7 +96,7 @@ local CONFIG = {
         ["Thunder Bomb"]  = 0,
         ["Poison Bomb"]   = 4,
         ["Time Bomb"]     = 0,
-        ["Agony Bomb"]    = 0,
+        ["Agony Bomb"]    = 2,
     },
 }
 
@@ -191,6 +191,7 @@ local state = {
     lastRejoinTime     = 0,
     currentTarget      = nil,
     currentTween       = nil,
+    firstBoulderScan   = true,
 
     sizeFilters        = table.clone(CONFIG.sizeFiltersDefault),
     tierFilters        = table.clone(CONFIG.tierFiltersDefault),
@@ -791,13 +792,32 @@ end
 local function scanAndBuildQueue()
     log("Scanning for boulders...")
     tweenTo(SCAN_POS)
-    task.wait(3)
+    task.wait(0.9)
 
     local data = updateBoulderData()
+
+    -- First scan only: wait up to 30s for boulders to appear, resume immediately when they do
+    if #data == 0 and state.firstBoulderScan then
+        log("First scan – waiting up to 30s for boulders to appear...")
+        local waitStart = tick()
+        while #data == 0 and (tick() - waitStart) < 30 and not state.stopScript and state.masterEnabled do
+            task.wait(0.5)
+            data = updateBoulderData()
+            if #data > 0 then
+                log("Boulders appeared after", string.format("%.1f", tick() - waitStart), "s – resuming.")
+                break
+            end
+        end
+        state.firstBoulderScan = false
+    end
+
     if #data == 0 then
         log("No allowed boulders found.")
         return false
     end
+
+    -- Mark first scan complete once we successfully find boulders
+    state.firstBoulderScan = false
 
     local hrpPos = hrp and hrp.Position or ZERO_VECTOR
     table.sort(data, function(a, b)
@@ -2198,16 +2218,16 @@ player.CharacterAdded:Connect(function(newChar)
 end)
 
 task.spawn(function()
+    autoSort()
+    sellAllCrystals()
+    buyBombs()
+
     while not state.stopScript do
         if state.masterEnabled then
 
             if not isToolEquipped() then
                 checkIfToolEquipped()
             end
-
-            autoSort()
-            sellAllCrystals()
-            buyBombs()
 
             destroyBoulders()
             deleteLowTierCrystals()
