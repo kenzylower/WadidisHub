@@ -30,8 +30,8 @@ local CONFIG = {
     sizeFiltersDefault = {
         S = false,
         M = false,
-        L = false,
-        XL = false,
+        L = true,
+        XL = true,
         Giant = true,
         Colossal = true,
         Titan = true,
@@ -43,10 +43,13 @@ local CONFIG = {
         [2] = false,
         [3] = false,
         [4] = false,
-        [5] = true,
-        [6] = true,
+        [5] = false,
+        [6] = false,
+        [7] = true,   -- added
+        [8] = true,   -- added
+        [9] = true,   -- added
     },
-    -- Rune collect toggles (only Colossus, Warmth, Haste, Weight on by default)
+    -- Rune collect toggles
     runeFiltersDefault = {
         ["Luck Rune"] = false,
         ["Haste Rune"] = false,
@@ -59,16 +62,17 @@ local CONFIG = {
         ["Excavator Rune"] = false,
         ["Colossus Rune"] = false,
     },
-    -- Boulder destroy toggles (only Gildrite, Rimeveil, Nocturnite on by default)
+    -- Boulder destroy toggles
     boulderFiltersDefault = {
         Mossite = false,
         Voltite = false,
-        Gildrite = true,
+        Gildrite = false,
         Rimeveil = true,
         Nocturnite = true,
     },
 }
 local PRIORITY = { Nocturnite = 3, Rimeveil = 2, Gildrite = 1, Mossite = 0, Voltite = 0 }
+
 -- ====================== SERVICES ======================
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -88,6 +92,7 @@ if _G.CombinedBoulderCrystalRunning then
     return
 end
 _G.CombinedBoulderCrystalRunning = true
+
 -- ====================== STATE ======================
 local state = {
     masterEnabled = CONFIG.masterEnabledDefault,
@@ -104,7 +109,6 @@ local state = {
     lastRejoinTime = 0,
     currentTarget = nil,
     currentTween = nil,
-    -- Crystal / rune filters (initialized from CONFIG)
     sizeFilters = table.clone(CONFIG.sizeFiltersDefault),
     tierFilters = table.clone(CONFIG.tierFiltersDefault),
     requireMutation = CONFIG.requireMutationDefault,
@@ -127,7 +131,7 @@ local SCAN_POS = CONFIG.SCAN_TELEPORT_POS
 local REJOIN_COOLDOWN = CONFIG.REJOIN_COOLDOWN
 local TWEEN_SPEED = CONFIG.TWEEN_SPEED
 
--- ====================== RUNE NAME HELPERS (FIXED) ======================
+-- ====================== RUNE NAME HELPERS ======================
 local function normalizeRuneName(name)
     if not name then return "" end
     name = tostring(name):lower():gsub("%s+", " "):gsub("^%s+", ""):gsub("%s+$", "")
@@ -162,7 +166,6 @@ local function isProtectedRune(objName)
     return false
 end
 
--- Build lookup once at start
 rebuildRuneLookup()
 
 -- ====================== UTILITIES ======================
@@ -180,6 +183,7 @@ local function waitForCharacter()
     humanoid = character:WaitForChild("Humanoid", 30)
     return character, hrp, humanoid
 end
+
 -- ====================== TOOL EQUIP ======================
 local function isToolEquipped()
     return character and character:FindFirstChild(TOOL_NAME) ~= nil
@@ -251,6 +255,7 @@ local function waitForToolEquipped()
     log("Failed to equip", TOOL_NAME)
     return false
 end
+
 -- ====================== FLY / NOCLIP ======================
 local linearVelocity: LinearVelocity? = nil
 local alignOrientation: AlignOrientation? = nil
@@ -347,6 +352,7 @@ local function updateFlyMovement()
     alignOrientation.CFrame = cam
 end
 RunService.Heartbeat:Connect(updateFlyMovement)
+
 -- ====================== TWEEN HELPERS ======================
 local function cancelCurrentTween()
     if state.currentTween then
@@ -382,26 +388,20 @@ local function tweenTo(cframeOrPos, heightOffset)
     return true
 end
 
-
 local function smartTweenTo(targetPos, heightOffset)
     if not hrp or not hrp.Parent then return false end
-
     local startPos = hrp.Position
     local distance = (targetPos - startPos).Magnitude
     local height = heightOffset or FLY_HEIGHT
-
     if distance >= 500 then
-        -- Only for 500+ → half way
         local mid = startPos:Lerp(targetPos, 0.5)
         log("Very far (" .. math.floor(distance) .. ") → going halfway")
         tweenTo(mid, height)
         task.wait(0.25 + math.random() * 0.15)
         tweenTo(targetPos, height)
     else
-        -- Less than 500 → go direct
         tweenTo(targetPos, height)
     end
-
     return true
 end
 
@@ -455,7 +455,7 @@ end
 local function scanAndBuildQueue()
     log("Scanning for boulders...")
     tweenTo(SCAN_POS)
-    task.wait(0.7) -- slightly faster
+    task.wait(0.7)
     local data = updateBoulderData()
     if #data == 0 then
         log("No allowed boulders found.")
@@ -475,6 +475,7 @@ local function scanAndBuildQueue()
     log("Queued", #boulderQueue, "boulders.")
     return true
 end
+
 -- ====================== AUTO SORT + SELL ======================
 local function autoSort()
     if not state.autoSortEnabled or state.stopScript then return end
@@ -529,8 +530,6 @@ local function rejoinGame()
         end
         return nil
     end
-
-    -- Keep trying until the place actually reloads (script dies) or user stops
     local attempt = 0
     while not state.stopScript do
         attempt += 1
@@ -539,12 +538,9 @@ local function rejoinGame()
             log("IY command bar found – sending rejoin (attempt " .. attempt .. ")...")
             pcall(function()
                 iyBox:CaptureFocus()
-                -- Always set / re-set the text even if "rj" is already there
                 iyBox.Text = "rj"
-                task.wait(0.15) -- delay between typing "rj" and submitting
-                -- Fire FocusLost (how IY usually submits)
+                task.wait(0.15)
                 pcall(firesignal, iyBox.FocusLost, true, Enum.UserInputType.Keyboard)
-                -- Also simulate Enter key for reliability
                 pcall(function()
                     VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Return, false, game)
                     task.wait(0.05)
@@ -555,9 +551,6 @@ local function rejoinGame()
         else
             log("IY command bar not found (attempt " .. attempt .. ") – cannot auto-rejoin yet.")
         end
-
-        -- Wait 3 seconds. If the game rejoined, this script will be gone.
-        -- If still here, try again.
         local waitStart = tick()
         while tick() - waitStart < 3 and not state.stopScript do
             task.wait(0.25)
@@ -574,7 +567,7 @@ local function processBoulder(boulder)
     end
     local name = boulder.Name
     log("Digging:", name)
-    smartTweenTo(pos, FLY_HEIGHT) -- ← uses halfway pathing
+    smartTweenTo(pos, FLY_HEIGHT)
     local destroyed = false
     local start = tick()
     local lastReposition = 0
@@ -602,12 +595,14 @@ local function processBoulder(boulder)
     log(destroyed and ("Destroyed: " .. name) or ("Timeout: " .. name))
     return destroyed
 end
--- ====================== CRYSTAL LOGIC (FIXED) ======================
+
+-- ====================== CRYSTAL LOGIC ======================
 local MUTATION_KEYWORDS = {
     mutation = true, mutant = true, evolved = true, corrupt = true,
     blessed = true, cursed = true, radiant = true, shiny = true,
     glowing = true, altered = true, enhanced = true, warped = true,
-    infused = true, charged = true
+    infused = true, charged = true,
+    empyrean = true, pulsar = true, quasar = true,   -- added
 }
 local function getMutationType(crystal)
     local attr = crystal:GetAttribute("Mutation") or crystal:GetAttribute("MutationType")
@@ -629,7 +624,6 @@ local function hasMutation(crystal)
     return getMutationType(crystal) ~= nil
 end
 
--- Returns size class string (e.g. "XL", "Giant") or nil
 local function getSizeClass(crystal)
     local attr = crystal:GetAttribute("SizeClass")
         or crystal:GetAttribute("Size")
@@ -651,7 +645,6 @@ local function getSizeClass(crystal)
             return s:sub(1,1):upper() .. s:sub(2):lower()
         end
     end
-    -- Fallback: derive from WeightKg (official ranges)
     local weight = tonumber(crystal:GetAttribute("WeightKg") or crystal:GetAttribute("Weight") or 0) or 0
     if weight < 8 then return "S"
     elseif weight < 30 then return "M"
@@ -679,9 +672,9 @@ local function isAllowedTier(crystal)
         end
         return false
     end
-    -- Fallback for name-based tier detection
+    -- Fallback for name-based tier detection (now supports T7-T9)
     local name = (crystal.Name or ""):lower()
-    for t = 1, 6 do
+    for t = 1, 9 do
         if name:find("crystal_t" .. t, 1, true) and state.tierFilters[t] then
             return true
         end
@@ -730,7 +723,7 @@ local function destroyBoulders()
     if #boulderQueue == 0 then
         local found = scanAndBuildQueue()
         if not found then
-            return false   -- signal that no boulders were found
+            return false
         end
     end
     while #boulderQueue > 0 and state.masterEnabled and not state.stopScript do
@@ -797,7 +790,6 @@ local function deleteRunes()
     end
 end
 
--- Shrink collectible crystals/runes to smallest size possible
 local function shrinkToSmallest(obj)
     if not obj or not obj.Parent then return end
     local tiny = Vector3.new(3, 3, 3)
@@ -812,7 +804,6 @@ local function shrinkToSmallest(obj)
     end
 end
 
--- Always collect the closest qualifying crystal
 local function collectQualifyingCrystals()
     if not state.masterEnabled or state.stopScript then return end
     local crystalsFolder = Workspace:FindFirstChild("Things")
@@ -859,7 +850,6 @@ local function collectQualifyingCrystals()
             local pos = crystal:IsA("Model") and crystal:GetPivot().Position or crystal.Position
             if not pos then break end
 
-            -- Use smart pathing when far
             if hrp and (pos - hrp.Position).Magnitude > 8 then
                 smartTweenTo(pos, 3.5)
             else
@@ -886,7 +876,7 @@ local function collectQualifyingCrystals()
                 log("!! Max attempts reached for", name)
                 break
             end
-            task.wait(0.06) -- slightly faster
+            task.wait(0.06)
         end
         task.wait(0.03)
     end
@@ -898,7 +888,6 @@ local function collectQualifyingCrystals()
     end
 end
 
--- Always collect the closest protected rune
 local function collectProtectedRunes()
     if not state.masterEnabled or state.stopScript then return end
 
@@ -984,7 +973,7 @@ local function collectProtectedRunes()
                 log("!! Gave up on", name, "after", attempts, "attempts")
                 break
             end
-            task.wait(0.07) -- slightly faster
+            task.wait(0.07)
         end
         task.wait(0.03)
     end
@@ -1006,7 +995,7 @@ local function createGUI()
     screenGui.ResetOnSpawn = false
     screenGui.Parent = player.PlayerGui
     local main = Instance.new("Frame")
-    main.Size = UDim2.fromOffset(300, 640)
+    main.Size = UDim2.fromOffset(300, 680)          -- slightly taller
     main.Position = UDim2.fromScale(0.01, 0.05)
     main.BackgroundColor3 = Color3.fromRGB(20, 20, 40)
     main.BackgroundTransparency = 0.2
@@ -1057,7 +1046,8 @@ local function createGUI()
     sellBtn.TextColor3 = Color3.new(1, 1, 1)
     sellBtn.Parent = main
     Instance.new("UICorner", sellBtn).CornerRadius = UDim.new(0, 6)
-    -- ===== Boulder Filters Section =====
+
+    -- Boulder Filters
     local boulderHeader = Instance.new("TextLabel")
     boulderHeader.Size = UDim2.new(1, -20, 0, 18)
     boulderHeader.Position = UDim2.fromOffset(10, 148)
@@ -1070,11 +1060,8 @@ local function createGUI()
     boulderHeader.Parent = main
     local boulderOrder = {"Mossite", "Voltite", "Gildrite", "Rimeveil", "Nocturnite"}
     local boulderShort = {
-        Mossite = "Moss",
-        Voltite = "Volt",
-        Gildrite = "Gild",
-        Rimeveil = "Rime",
-        Nocturnite = "Noct",
+        Mossite = "Moss", Voltite = "Volt", Gildrite = "Gild",
+        Rimeveil = "Rime", Nocturnite = "Noct",
     }
     local boulderBtns = {}
     for i, b in ipairs(boulderOrder) do
@@ -1089,7 +1076,8 @@ local function createGUI()
         Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
         boulderBtns[b] = btn
     end
-    -- ===== Crystal Filters Section =====
+
+    -- Crystal Filters
     local filterHeader = Instance.new("TextLabel")
     filterHeader.Size = UDim2.new(1, -20, 0, 18)
     filterHeader.Position = UDim2.fromOffset(10, 200)
@@ -1100,7 +1088,7 @@ local function createGUI()
     filterHeader.Font = Enum.Font.GothamBold
     filterHeader.TextXAlignment = Enum.TextXAlignment.Left
     filterHeader.Parent = main
-    -- Mutation toggle
+
     local mutBtn = Instance.new("TextButton")
     mutBtn.Size = UDim2.new(0.9, 0, 0, 22)
     mutBtn.Position = UDim2.fromOffset(14, 220)
@@ -1109,7 +1097,7 @@ local function createGUI()
     mutBtn.TextColor3 = Color3.new(1, 1, 1)
     mutBtn.Parent = main
     Instance.new("UICorner", mutBtn).CornerRadius = UDim.new(0, 5)
-    -- Tier filters label
+
     local tierLabel = Instance.new("TextLabel")
     tierLabel.Size = UDim2.new(1, -20, 0, 16)
     tierLabel.Position = UDim2.fromOffset(10, 248)
@@ -1120,12 +1108,16 @@ local function createGUI()
     tierLabel.Font = Enum.Font.Gotham
     tierLabel.TextXAlignment = Enum.TextXAlignment.Left
     tierLabel.Parent = main
+
+    -- T1-T9 buttons (two rows)
     local tierBtns = {}
-    local tierNames = {1, 2, 3, 4, 5, 6}
+    local tierNames = {1, 2, 3, 4, 5, 6, 7, 8, 9}
     for i, t in ipairs(tierNames) do
+        local row = math.floor((i - 1) / 5)
+        local col = (i - 1) % 5
         local btn = Instance.new("TextButton")
         btn.Size = UDim2.fromOffset(40, 22)
-        btn.Position = UDim2.fromOffset(14 + (i - 1) * 44, 266)
+        btn.Position = UDim2.fromOffset(14 + col * 44, 266 + row * 26)
         btn.Text = "T" .. t
         btn.TextSize = 11
         btn.Font = Enum.Font.GothamBold
@@ -1134,10 +1126,11 @@ local function createGUI()
         Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
         tierBtns[t] = btn
     end
-    -- Size filters label
+
+    -- Size section (shifted down)
     local sizeLabel = Instance.new("TextLabel")
     sizeLabel.Size = UDim2.new(1, -20, 0, 16)
-    sizeLabel.Position = UDim2.fromOffset(10, 296)
+    sizeLabel.Position = UDim2.fromOffset(10, 322)
     sizeLabel.BackgroundTransparency = 1
     sizeLabel.Text = "Sizes:"
     sizeLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
@@ -1145,6 +1138,7 @@ local function createGUI()
     sizeLabel.Font = Enum.Font.Gotham
     sizeLabel.TextXAlignment = Enum.TextXAlignment.Left
     sizeLabel.Parent = main
+
     local sizeOrder = {"S", "M", "L", "XL", "Giant", "Colossal", "Titan", "Leviathan", "Behemoth"}
     local sizeBtns = {}
     local sizeShort = {
@@ -1157,7 +1151,7 @@ local function createGUI()
         local col = (i - 1) % 5
         local btn = Instance.new("TextButton")
         btn.Size = UDim2.fromOffset(50, 22)
-        btn.Position = UDim2.fromOffset(14 + col * 54, 314 + row * 26)
+        btn.Position = UDim2.fromOffset(14 + col * 54, 340 + row * 26)
         btn.Text = sizeShort[s] or s
         btn.TextSize = 10
         btn.Font = Enum.Font.GothamBold
@@ -1166,10 +1160,11 @@ local function createGUI()
         Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
         sizeBtns[s] = btn
     end
-    -- ===== Rune Filters Section =====
+
+    -- Rune section (shifted down)
     local runeHeader = Instance.new("TextLabel")
     runeHeader.Size = UDim2.new(1, -20, 0, 18)
-    runeHeader.Position = UDim2.fromOffset(10, 372)
+    runeHeader.Position = UDim2.fromOffset(10, 400)
     runeHeader.BackgroundTransparency = 1
     runeHeader.Text = "Runes to Collect"
     runeHeader.TextColor3 = Color3.fromRGB(180, 180, 255)
@@ -1177,21 +1172,16 @@ local function createGUI()
     runeHeader.Font = Enum.Font.GothamBold
     runeHeader.TextXAlignment = Enum.TextXAlignment.Left
     runeHeader.Parent = main
+
     local runeOrder = {
         "Luck Rune", "Haste Rune", "Storm Rune", "Weight Rune", "Fortune Rune",
         "Detonation Rune", "Preservation Rune", "Warmth Rune", "Excavator Rune", "Colossus Rune"
     }
     local runeShort = {
-        ["Luck Rune"] = "Luck",
-        ["Haste Rune"] = "Haste",
-        ["Storm Rune"] = "Storm",
-        ["Weight Rune"] = "Weight",
-        ["Fortune Rune"] = "Fortune",
-        ["Detonation Rune"] = "Deton",
-        ["Preservation Rune"] = "Preserv",
-        ["Warmth Rune"] = "Warmth",
-        ["Excavator Rune"] = "Excav",
-        ["Colossus Rune"] = "Colossus",
+        ["Luck Rune"] = "Luck", ["Haste Rune"] = "Haste", ["Storm Rune"] = "Storm",
+        ["Weight Rune"] = "Weight", ["Fortune Rune"] = "Fortune", ["Detonation Rune"] = "Deton",
+        ["Preservation Rune"] = "Preserv", ["Warmth Rune"] = "Warmth",
+        ["Excavator Rune"] = "Excav", ["Colossus Rune"] = "Colossus",
     }
     local runeBtns = {}
     for i, r in ipairs(runeOrder) do
@@ -1199,7 +1189,7 @@ local function createGUI()
         local col = (i - 1) % 5
         local btn = Instance.new("TextButton")
         btn.Size = UDim2.fromOffset(50, 22)
-        btn.Position = UDim2.fromOffset(14 + col * 54, 392 + row * 26)
+        btn.Position = UDim2.fromOffset(14 + col * 54, 420 + row * 26)
         btn.Text = runeShort[r] or r
         btn.TextSize = 10
         btn.Font = Enum.Font.GothamBold
@@ -1208,6 +1198,7 @@ local function createGUI()
         Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
         runeBtns[r] = btn
     end
+
     local closeBtn = Instance.new("TextButton")
     closeBtn.Size = UDim2.fromOffset(25, 25)
     closeBtn.Position = UDim2.new(1, -30, 0, 5)
@@ -1219,6 +1210,7 @@ local function createGUI()
     closeBtn.Parent = main
     Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 4)
 
+    -- Visual helpers
     local function applyMasterVisuals()
         if state.masterEnabled then
             statusLabel.Text = "Status: ✅ ON"
@@ -1375,6 +1367,7 @@ local function createGUI()
             toggleMaster()
         end
     end)
+
     applyMasterVisuals()
     applySortVisuals()
     applySellVisuals()
@@ -1429,13 +1422,11 @@ task.spawn(function()
 
             local foundBoulders = destroyBoulders()
 
-            -- Always do crystal/rune cleanup
             deleteLowTierCrystals()
             deleteRunes()
             collectQualifyingCrystals()
             collectProtectedRunes()
 
-            -- Only rejoin if no boulders AND still no collectibles after the final pass
             if not foundBoulders then
                 if not hasQualifyingCollectibles() then
                     if (tick() - state.lastRejoinTime) > REJOIN_COOLDOWN then
@@ -1461,5 +1452,5 @@ task.spawn(function()
     log("Master loop exited.")
 end)
 print("===========================================================")
-print("Mine a mountain script (with smart pathing + closest target)")
+print("Mine a mountain script (T7-T9 support + smart pathing)")
 print("===========================================================")
