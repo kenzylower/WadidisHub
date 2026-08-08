@@ -791,7 +791,7 @@ end
 local function scanAndBuildQueue()
     log("Scanning for boulders...")
     tweenTo(SCAN_POS)
-    task.wait(0.9)
+    task.wait(3)
 
     local data = updateBoulderData()
     if #data == 0 then
